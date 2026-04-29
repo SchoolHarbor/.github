@@ -18,17 +18,32 @@ name: Supply chain audit
 #   - Skipped on repos without a pnpm-lock.yaml.
 #
 # Default threshold is `critical` so the workflow doesn't block repos
-# with accumulated high-severity CVE tech debt. Override per-repo:
+# with accumulated high-severity CVE tech debt.
 #
-#   jobs:
-#     supply-chain:
-#       uses: SchoolHarbor/.github/.github/workflows/supply-chain-audit.yml@main
-#       with:
-#         audit-level: high
-#     build:
-#       needs: supply-chain
+# This file supports two invocation modes:
+#
+# 1. Org-level required workflow (primary) — invoked by GitHub via the
+#    Repository Rulesets `workflows` rule on `pull_request` and
+#    `merge_group` events across every repo in the org. Always uses the
+#    default `audit-level: critical` (ruleset-injected workflows can't
+#    pass inputs). Per-repo customization isn't possible in this mode.
+#
+# 2. Reusable workflow (legacy / opt-in) — invoked from a consuming
+#    repo's CI via `uses:`. Lets the caller override `audit-level`. Only
+#    useful if a repo wants to also run the audit as a `needs:` gate
+#    inside its own CI graph (defense-in-depth above the org rule).
+#
+#      jobs:
+#        supply-chain:
+#          uses: SchoolHarbor/.github/.github/workflows/supply-chain-audit.yml@main
+#          with:
+#            audit-level: high
+#        build:
+#          needs: supply-chain
 
 on:
+  pull_request:
+  merge_group:
   workflow_call:
     inputs:
       audit-level:
@@ -55,6 +70,6 @@ jobs:
       - uses: pnpm/action-setup@v4
         if: steps.detect.outputs.found == 'true'
 
-      - name: pnpm audit (fail on ${{ inputs.audit-level }}+)
+      - name: pnpm audit (fail on ${{ inputs.audit-level || 'critical' }}+)
         if: steps.detect.outputs.found == 'true'
-        run: pnpm audit --audit-level=${{ inputs.audit-level }}
+        run: pnpm audit --audit-level=${{ inputs.audit-level || 'critical' }}
