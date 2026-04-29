@@ -1,0 +1,57 @@
+name: Security marker check
+
+# Reusable workflow that fails the build if a known-malicious marker
+# string is found in the repository.
+#
+# Currently checks for the postcss/next.config worm campaign of April 2026
+# (https://github.com/orgs/community/discussions/188732).
+#
+# Use as a `needs:` dependency for every other job in a CI workflow so a
+# poisoned commit can never reach build/deploy steps:
+#
+#   jobs:
+#     security-check:
+#       uses: SchoolHarbor/.github/.github/workflows/security-marker-check.yml@main
+#     build:
+#       needs: security-check
+#       ...
+#
+# The marker list lives in this file. When new IOCs are observed, update
+# this workflow once and every consuming repo picks up the new check on
+# its next run.
+
+on:
+  workflow_call: {}
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Scan for postcss/next.config worm markers
+        run: |
+          set -euo pipefail
+          if grep -rn -F \
+               -e '_$_1e42' \
+               -e 'sfL[EKc]' \
+               -e 'Tgw(2509);return 1358}' \
+               -e "global['!']='4-" \
+               --include='*.mjs' \
+               --include='*.cjs' \
+               --include='*.js' \
+               --include='*.jsx' \
+               --include='*.ts' \
+               --include='*.tsx' \
+               --exclude-dir=node_modules \
+               --exclude-dir=.git \
+               --exclude-dir=dist \
+               --exclude-dir=build \
+               --exclude-dir=.next \
+               .; then
+            echo "::error::postcss/next.config worm marker detected — see https://github.com/orgs/community/discussions/188732"
+            exit 1
+          fi
+          echo "No known-malicious markers detected."
