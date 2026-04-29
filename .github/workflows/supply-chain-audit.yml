@@ -1,0 +1,60 @@
+name: Supply chain audit
+
+# Reusable workflow that flags known-vulnerable JavaScript dependencies
+# in the consuming repo via `pnpm audit`. Replaces the earlier
+# postcss-worm marker grep, which only caught one campaign's specific
+# obfuscator output.
+#
+# `pnpm audit` queries the npm advisory database — strictly broader than
+# the marker grep:
+#   - Covers every package with a published advisory (including the
+#     postcss-worm packages, which are tagged critical).
+#   - Updates as new advisories land — no marker list to maintain.
+#
+# Caveats:
+#   - Reactive: a brand-new install-script worm isn't in the advisory DB
+#     until npm or researchers flag it. For behavioral detection of
+#     install-script abuse, layer Socket.dev or Snyk on top of this.
+#   - Skipped on repos without a pnpm-lock.yaml.
+#
+# Default threshold is `critical` so the workflow doesn't block repos
+# with accumulated high-severity CVE tech debt. Override per-repo:
+#
+#   jobs:
+#     supply-chain:
+#       uses: SchoolHarbor/.github/.github/workflows/supply-chain-audit.yml@main
+#       with:
+#         audit-level: high
+#     build:
+#       needs: supply-chain
+
+on:
+  workflow_call:
+    inputs:
+      audit-level:
+        description: "Min severity that fails the build (low/moderate/high/critical)"
+        type: string
+        required: false
+        default: "critical"
+
+jobs:
+  pnpm-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect pnpm-lock.yaml
+        id: detect
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::No pnpm-lock.yaml — supply-chain audit skipped"
+          fi
+
+      - uses: pnpm/action-setup@v4
+        if: steps.detect.outputs.found == 'true'
+
+      - name: pnpm audit (fail on ${{ inputs.audit-level }}+)
+        if: steps.detect.outputs.found == 'true'
+        run: pnpm audit --audit-level=${{ inputs.audit-level }}
