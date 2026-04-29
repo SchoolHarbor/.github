@@ -4,7 +4,9 @@ Org-level community health files and reusable workflows.
 
 ## Reusable workflows
 
-### `supply-chain-audit.yml`
+### `supply-chain-audit.yml` — proof of concept (disabled)
+
+> **Status:** PoC. The org ruleset that referenced this workflow is currently `enforcement: disabled` pending a decision on a broader off-the-shelf tool (Socket.dev / Snyk / OSV-Scanner / GitHub Dependency Review). The file and ruleset config are preserved so the wiring can be revived by flipping the ruleset back to `active`.
 
 Fails CI if any JavaScript dependency in the consuming repo has an npm advisory at or above a configurable severity. Defaults to `critical` (so it catches the postcss-worm class of attack — those packages are tagged critical — without blocking on accumulated high-severity tech debt).
 

@@ -1,5 +1,16 @@
 name: Supply chain audit
 
+# ----------------------------------------------------------------------
+# STATUS: PROOF OF CONCEPT — NOT ENFORCED.
+#
+# The org-level ruleset that referenced this workflow (id 15739509) has
+# been set to `enforcement: disabled`. Pending decision on a broader
+# off-the-shelf supply-chain tool (Socket.dev, Snyk, OSV-Scanner, GitHub
+# Dependency Review, etc.). Keep this file as a working reference for
+# the org-rule wiring pattern; revive by flipping the ruleset back to
+# `active`.
+# ----------------------------------------------------------------------
+#
 # Reusable workflow that flags known-vulnerable JavaScript dependencies
 # in the consuming repo via `pnpm audit`. Replaces the earlier
 # postcss-worm marker grep, which only caught one campaign's specific
